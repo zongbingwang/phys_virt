@@ -173,8 +173,8 @@ static NTSTATUS physmem_ctl(IN PDEVICE_OBJECT device, IN PIRP irp)
 		PushEntryList(&mmap_head, &mapped_memory->node);
 
 		// pass it over to user
-		irp->IoStatus.Information = sizeof(void *);
-		RtlCopyMemory(irp->AssociatedIrp.SystemBuffer, &vaddr_user, sizeof(void *));
+		irp->IoStatus.Information = addr_rq->size;
+		RtlCopyMemory(irp->AssociatedIrp.SystemBuffer, &vaddr_user, addr_rq->size);
 
 		irp->IoStatus.Status = STATUS_SUCCESS;
 		IoCompleteRequest(irp, IO_NO_INCREMENT);
