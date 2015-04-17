@@ -30,12 +30,18 @@
 
 #include "physmem.h"
 
+typedef struct {
+	uint32_t p;
+	uint8_t c;
+	uint64_t t;
+} test_t;
+
 int main(void)
 {
 	HANDLE hDriver;
 	rqaddr_t rq;
-	void *virt;
 	size_t ret;
+	test_t *test;
 
 	hDriver = CreateFileW(DEVICE_IOCTL,
 		GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ,
@@ -46,26 +52,27 @@ int main(void)
 	}
 
 	rq.addr = 0x00000000;
-	rq.size = 8;
+	rq.size = sizeof(*test);
 
 	// Map memory
 	if (DeviceIoControl(hDriver,
-		IOCTL_PHYSMEM_MAP, &rq, sizeof(rq), &virt, sizeof(void *), &ret, NULL)) {
+		IOCTL_PHYSMEM_MAP, &rq, sizeof(rq), &test, sizeof(test), &ret, NULL)) {
 		printf("Success: Mapped physical address 0x%X into 0x%X (virtual) (size: %d)\n",
-			rq.addr, virt, ret);
+			rq.addr, test, ret);
 	} else {
 		fprintf(stderr, "DeviceIoControl failed for some reason: %d\n", GetLastError());
 		goto out;
 	}
 
-	printf("Virtual old: %d\n", *(int *)virt);
-	*(int *)virt = 5;
-	printf("Virtual new: %d\n", *(int *)virt);
+	test->c = 0x1F;
+	test->p = 0xdeadbeef;
+	test->t = 0xc10c73334fffffff;
+	printf("0x%x 0x%X 0x%X\n", test->c, test->p, test->t);
 
 	// Unmap
-	rq.addr = virt;
+	rq.addr = test;
 	if (DeviceIoControl(hDriver,
-		IOCTL_PHYSMEM_UNMAP, &rq, sizeof(rqaddr_t), NULL, 0, NULL, NULL)) {
+		IOCTL_PHYSMEM_UNMAP, &rq, sizeof(rq), NULL, 0, NULL, NULL)) {
 		fprintf(stderr, "Successfully unmapped memory!\n");
 	} else {
 		fprintf(stderr, "DeviceIoControl failed for some reason: %d\n", GetLastError());
